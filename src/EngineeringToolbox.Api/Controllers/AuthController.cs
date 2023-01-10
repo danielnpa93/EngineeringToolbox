@@ -32,6 +32,16 @@ namespace EngineeringToolbox.Api.Controllers
             return CustomResponse(result);
         }
 
+        //[HttpPost("update")]
+        //[ProducesResponseType(typeof(ResultModel<Guid>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
+        //public async Task<IActionResult> Register(UserRegisterViewModel userRegister)
+        //{
+        //    var result = await _authServices.RegisterUser(userRegister);
+
+        //    return CustomResponse(result);
+        //}
+
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(typeof(ResultModel<TokenModel>), StatusCodes.Status200OK)]

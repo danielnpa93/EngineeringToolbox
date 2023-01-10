@@ -6,6 +6,7 @@ using EngineeringToolbox.Domain.Nofication;
 using EngineeringToolbox.Domain.Repositories;
 using EngineeringToolbox.Domain.Settings;
 using EngineeringToolbox.Shared.Token;
+using EngineeringToolbox.Shared.Utils;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -59,13 +60,28 @@ namespace EngineeringToolbox.Application.Services
 
             var emailAlreadyExists = await _identityRepository.GetUserByEmail(user.Email.Value);
 
-            if(emailAlreadyExists != null)
+            if (emailAlreadyExists != null)
             {
                 _notification.AddNotification("Email already registered");
                 return default;
             }
 
-            return await _identityRepository.RegisterUser(user);
+
+            var message = GenerateRegistrationEmail(user);
+
+            try
+            {
+                await EmailHandler.SendEmail(_settings.EmailAdress, user.Email.Value, "Engineering Toolbox Registration",
+                    message, _settings.EmailPassword, "DNSoft");
+
+                return await _identityRepository.RegisterUser(user);
+
+            }
+            catch (Exception ex)
+            {
+                return default;
+            }
+
         }
 
         private async Task<TokenModel> GetToken(string userEmail)
@@ -110,5 +126,18 @@ namespace EngineeringToolbox.Application.Services
 
         private static long ToUnixEpochDate(DateTime date)
            => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
+
+        private string GenerateRegistrationEmail(User user)
+        {
+            StringBuilder template = new StringBuilder();
+
+            template.AppendLine("<h4>Welcome to Engineering Toolbox!</h4>");
+            template.AppendLine("<p>We received a registration in this email. To continue, use the password below</p>");
+            template.AppendLine($"<p><strong>{user.Password}</strong></p>");
+            template.AppendLine("</br>");
+            template.AppendLine("<p>Good Simulations!</p>");
+
+            return template.ToString();
+        }
     }
 }

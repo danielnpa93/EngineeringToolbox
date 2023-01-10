@@ -10,7 +10,10 @@ namespace EngineeringToolbox.Api.Extensions
                 identitySecret: configuration.GetSection("Identity")["IdentitySecret"],
                 tokenExpiresInMiliSeconds: configuration.GetSection("Identity").GetValue<int>("TokenExpiresInMiliSeconds"),
                 tokenAvailableDomains: configuration.GetSection("Identity")["TokenAvailableDomains"],
-                tokenEmmiter: configuration.GetSection("Identity")["TokenEmmiter"]);
+                tokenEmmiter: configuration.GetSection("Identity")["TokenEmmiter"],
+                emailAdress: configuration.GetSection("Email")["HostAdress"],
+                emailPassword: configuration.GetSection("Email")["HostCode"]
+                );
 
             services.AddSingleton<ISettings>(settings);
 
