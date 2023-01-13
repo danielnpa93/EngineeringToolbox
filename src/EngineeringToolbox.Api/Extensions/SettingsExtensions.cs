@@ -16,7 +16,6 @@ namespace EngineeringToolbox.Api.Extensions
                 );
 
             services.AddSingleton<ISettings>(settings);
-
         }
     }
 }

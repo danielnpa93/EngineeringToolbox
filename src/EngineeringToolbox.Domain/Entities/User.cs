@@ -1,39 +1,59 @@
 ﻿using EngineeringToolbox.Domain.Validators;
-using EngineeringToolbox.Domain.ValueObjects;
+using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EngineeringToolbox.Domain.Entities
 {
-    public class User : BaseEntity
+    public class User : IdentityUser
     {
-        public Email Email { get; private set; }
+        public string FirstName { get; private set; }
+        public string LastName { get; private set; }
+        public DateTime PasswordExpiresIn { get; private set; }
+
+        [NotMapped]
         public string Password { get; private set; }
-        public bool IsEmailConfirmed { get; private set; }
 
-        public User(Email email, string password, bool isEmailConfirmed = false)
+        [NotMapped]
+        public bool Valid { get; private set; }
+
+        [NotMapped]
+        public ValidationResult ValidationResult { get; private set; }
+
+        //EF
+        protected User() { }
+        public User(string email,
+            string password,
+            string firstName,
+            string lastName)
         {
-            Id = Guid.NewGuid();
-            Email = email;
             Password = password;
-            IsEmailConfirmed = isEmailConfirmed;
+            FirstName = firstName;
+            LastName = lastName;
+            PasswordExpiresIn = DateTime.UtcNow;
+            Email = email;
+            UserName = email;
 
-            this.Validate(this, new UserValidator());
+            Validate(this, new UserValidator());
         }
 
         public void ChangeEmail(string email)
         {
-            Email = new Email(email);
-            this.Validate(this, new UserValidator());
-        }
-
-        public void ChangeConfirmEmailStatus(bool isConfirmed)
-        {
-            IsEmailConfirmed = isConfirmed;
+            Email = email;
+            Validate(this, new UserValidator());
         }
 
         public void ChangePassword(string password)
         {
             Password = password;
-            this.Validate(this, new UserValidator());
+            Validate(this, new UserValidator());
+        }
+
+        private bool Validate<TModel>(TModel model, AbstractValidator<TModel> validator)
+        {
+            ValidationResult = validator.Validate(model);
+            return Valid = ValidationResult.IsValid;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using EngineeringToolbox.Domain.Settings;
+﻿using EngineeringToolbox.Domain.Entities;
+using EngineeringToolbox.Domain.Settings;
 using EngineeringToolbox.Infrastructure.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +17,7 @@ namespace EngineeringToolbox.Api.Config
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
             x => x.MigrationsAssembly("EngineeringToolbox.Infrastructure")));
 
-            services.AddDefaultIdentity<IdentityUser>()
+            services.AddDefaultIdentity<User>()
                   .AddRoles<IdentityRole>()
                   .AddEntityFrameworkStores<ApplicationDbContext>()
                   .AddDefaultTokenProviders();

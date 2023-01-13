@@ -40,7 +40,7 @@ namespace EngineeringToolbox.Application.Services
             if (!isUserValid)
                 return default;
 
-            return await GetToken(user.Email.Value);
+            return await GetToken(user.Email);
         }
 
         public Task<Guid> RegisterClient(ClientRegisterViewModel model)
@@ -58,7 +58,7 @@ namespace EngineeringToolbox.Application.Services
                 return default;
             }
 
-            var emailAlreadyExists = await _identityRepository.GetUserByEmail(user.Email.Value);
+            var emailAlreadyExists = await _identityRepository.GetUserByEmail(user.Email);
 
             if (emailAlreadyExists != null)
             {
@@ -66,22 +66,25 @@ namespace EngineeringToolbox.Application.Services
                 return default;
             }
 
+            var success = await _identityRepository.RegisterUser(user);
+
+            if (!success)
+                return default;
+
 
             var message = GenerateRegistrationEmail(user);
 
-            try
+            var sendEmail = await EmailHandler.SendEmail(_settings.EmailAdress, user.Email, "Engineering Toolbox Registration",
+                message, _settings.EmailPassword, "DNSoft");
+           
+            if (!sendEmail)
             {
-                await EmailHandler.SendEmail(_settings.EmailAdress, user.Email.Value, "Engineering Toolbox Registration",
-                    message, _settings.EmailPassword, "DNSoft");
-
-                return await _identityRepository.RegisterUser(user);
-
-            }
-            catch (Exception ex)
-            {
+                _notification.AddNotification("Error to send registration email");
                 return default;
+
             }
 
+            return Guid.Parse(user.Id);
         }
 
         private async Task<TokenModel> GetToken(string userEmail)
@@ -120,7 +123,7 @@ namespace EngineeringToolbox.Application.Services
             {
                 ExpiresIn = token.ValidTo,
                 Token = tokenHandler.WriteToken(token),
-                EmailConfirmed = user.IsEmailConfirmed
+                PasswordExpired = user.PasswordExpiresIn < DateTime.UtcNow,
             };
         }
 
@@ -131,8 +134,10 @@ namespace EngineeringToolbox.Application.Services
         {
             StringBuilder template = new StringBuilder();
 
-            template.AppendLine("<h4>Welcome to Engineering Toolbox!</h4>");
-            template.AppendLine("<p>We received a registration in this email. To continue, use the password below</p>");
+            template.AppendLine($"<h4>Hello {user.FirstName},</h4>");
+            template.AppendLine($"<p>Welcome to Engineering Toolbox!</p>");
+
+            template.AppendLine("<p>We received a registration in this email. To continue, use the password below: </p>");
             template.AppendLine($"<p><strong>{user.Password}</strong></p>");
             template.AppendLine("</br>");
             template.AppendLine("<p>Good Simulations!</p>");

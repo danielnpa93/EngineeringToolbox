@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using EngineeringToolbox.Application.ViewModels;
 using EngineeringToolbox.Domain.Entities;
-using EngineeringToolbox.Domain.ValueObjects;
 using EngineeringToolbox.Shared.Utils;
 
 namespace EngineeringToolbox.Application.Mapping
@@ -11,15 +10,10 @@ namespace EngineeringToolbox.Application.Mapping
         public UserProfile()
         {
             CreateMap<UserRegisterViewModel, User>()
-                .ConstructUsing(src => new User(GetEmail(src.Email), GetUserRegisterPassword(), false));
+                .ConstructUsing(src => new User(src.Email, GetUserRegisterPassword(), src.FirstName, src.LastName));
 
             CreateMap<UserLoginViewModel, User>()
-                .ConstructUsing(src => new User(GetEmail(src.Email), src.Password, false));
-        }
-
-        private Email GetEmail(string email)
-        {
-            return new Email(email);
+                .ConstructUsing(src => new User(src.Email, src.Password, null, null));
         }
 
         private string GetUserRegisterPassword()

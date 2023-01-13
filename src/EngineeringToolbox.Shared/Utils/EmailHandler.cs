@@ -8,7 +8,7 @@ namespace EngineeringToolbox.Shared.Utils
 {
     public class EmailHandler
     {
-        public static async Task SendEmail(string from, string to, string subject, string body, string password, string fromAlias = null, string toAlias = null)
+        public static async Task<bool> SendEmail(string from, string to, string subject, string body, string password, string fromAlias = null, string toAlias = null)
         {
             //var fromAddress = new MailAddress(from, fromAlias);
             //var toAddress = new MailAddress(to, toAlias);
@@ -24,17 +24,67 @@ namespace EngineeringToolbox.Shared.Utils
                 Timeout = 20000
             };
 
+
+
+            //var smtp =new SmtpClient("localhost")
+            //{
+
+            //    Port = 25,
+            //    DeliveryMethod = SmtpDeliveryMethod.Network,
+            //    EnableSsl = false
+
+            //    //EnableSsl = false,// true;
+            //    //DeliveryMethod = SmtpDeliveryMethod.Network,
+            //    //Port = 25,
+            //    // UseDefaultCredentials
+            //    // DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory,
+            //    // PickupDirectoryLocation = @"C:\Demos"
+
+            //};
+
+
+
             Email.DefaultSender = new SmtpSender(() =>  smtp);
             Email.DefaultRenderer = new RazorRenderer();
 
-            await Email
-                .From(from, fromAlias)
-                .To(to,toAlias)
-                .Subject(subject)
-                .UsingTemplate(body, new {})
-                .Body(body)
-                // .Body("Thanks for buying our products.")
-                .SendAsync();
+
+
+            //await Email
+            //    .From(from, fromAlias)
+            //    .To(to, toAlias)
+            //    .Subject(subject)
+            //    .UsingTemplate(body, new { })
+            //    .Body(body)
+            //    // .Body("Thanks for buying our products.")
+            //    .SendAsync();
+
+
+            try
+            {
+                var email = await Email
+              .From(from, fromAlias)
+              .To(to, toAlias)
+              .Subject(subject)
+              .UsingTemplate(body.ToString(), new { })
+              //.Body(body)
+              // .Body("Thanks for buying our products.")
+              .SendAsync();
+
+                return true;
+
+            }
+            catch(Exception ex)
+            {
+                return false;
+
+            }
+
+          
+
+
+           
+
+           // await smtp.SendMailAsync(email);
 
 
             //using (var message = new MailMessage(fromAddress, toAddress)

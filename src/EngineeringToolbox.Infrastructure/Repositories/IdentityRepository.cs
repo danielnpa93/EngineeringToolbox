@@ -9,13 +9,13 @@ namespace EngineeringToolbox.Infrastructure.Repositories
 {
     public class IdentityRepository : IIdentityRepository
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<User> _signInManager;
+        private readonly UserManager<User> _userManager;
         private readonly NotificationContext _notificationContext;
         private readonly IMapper _mapper;
 
-        public IdentityRepository(SignInManager<IdentityUser> signInManager,
-            UserManager<IdentityUser> userManager,
+        public IdentityRepository(SignInManager<User> signInManager,
+            UserManager<User> userManager,
             NotificationContext notificationContext,
             IMapper mapper)
         {
@@ -27,42 +27,36 @@ namespace EngineeringToolbox.Infrastructure.Repositories
 
         public async Task<User> GetUserByEmail(string email)
         {
-            var identityUser = await _userManager.FindByEmailAsync(email);
-            return _mapper.Map<User>(identityUser);
-
+            return await _userManager.FindByEmailAsync(email);
         }
 
         public async Task<IList<Claim>> GetUserClaims(User user)
         {
-            var IdentityUser = _mapper.Map<IdentityUser>(user);
-            return await _userManager.GetClaimsAsync(IdentityUser);
+            return await _userManager.GetClaimsAsync(user);
         }
 
         public async Task<IEnumerable<string>> GetUserRoles(User user)
         {
-            var IdentityUser = _mapper.Map<IdentityUser>(user);
-            return await _userManager.GetRolesAsync(IdentityUser);
+            return await _userManager.GetRolesAsync(user);
         }
 
 
-        public async Task<Guid> RegisterUser(User user)
+        public async Task<bool> RegisterUser(User user)
         {
-            var identityUser = _mapper.Map<IdentityUser>(user);
-
-            var result = await _userManager.CreateAsync(identityUser, user.Password);
+            var result = await _userManager.CreateAsync(user, user.Password);
 
             if (!result.Succeeded)
             {
                 _notificationContext.AddNotifications(result.Errors.Select(e => e.Description));
-                return default;
+                return false;
             }
 
-            return Guid.Parse(identityUser.Id);
+            return true;
         }
 
         public async Task<bool> ValidateUserLogin(User user)
         {
-            var result = await _signInManager.PasswordSignInAsync(user.Email.Value, user.Password, false, true);
+            var result = await _signInManager.PasswordSignInAsync(user.Email, user.Password, false, true);
 
             if (result.IsLockedOut)
             {
