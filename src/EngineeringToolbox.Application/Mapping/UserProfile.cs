@@ -9,7 +9,7 @@ namespace EngineeringToolbox.Application.Mapping
     {
         public UserProfile()
         {
-            CreateMap<UserRegisterViewModel, User>()
+            CreateMap<UserViewModel, User>()
                 .ConstructUsing(src => new User(src.Email, GetUserRegisterPassword(), src.FirstName, src.LastName));
 
             CreateMap<UserLoginViewModel, User>()

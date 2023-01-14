@@ -5,6 +5,8 @@ using EngineeringToolbox.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EngineeringToolbox.Shared.Token;
+using Microsoft.AspNetCore.JsonPatch;
+using EngineeringToolbox.Domain.Entities;
 
 namespace EngineeringToolbox.Api.Controllers
 {
@@ -25,7 +27,7 @@ namespace EngineeringToolbox.Api.Controllers
         [HttpPost("register")]
         [ProducesResponseType(typeof(ResultModel<Guid>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Register(UserRegisterViewModel userRegister)
+        public async Task<IActionResult> Register(UserViewModel userRegister)
         {
             var result = await _authServices.RegisterUser(userRegister);
 
@@ -52,5 +54,21 @@ namespace EngineeringToolbox.Api.Controllers
 
             return CustomResponse(result);
         }
+
+        [HttpPost("reset_password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        {
+            await _authServices.ResetPassword(model);
+
+            return CustomResponse();
+        }
+
+        //[HttpPatch]
+        //public async Task<IActionResult> ChangeUser([FromBody] JsonPatchDocument<User> userModel)
+        //{
+        //    ///id from token
+        //    ///
+
+        //}
     }
 }

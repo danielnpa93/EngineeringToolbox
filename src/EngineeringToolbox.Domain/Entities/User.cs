@@ -50,6 +50,13 @@ namespace EngineeringToolbox.Domain.Entities
             Validate(this, new UserValidator());
         }
 
+        public void ChangeName(string firstName, string lastName)
+        {
+            FirstName = firstName?? FirstName;
+            LastName = lastName ?? LastName;
+            Validate(this, new UserValidator());
+        }
+
         private bool Validate<TModel>(TModel model, AbstractValidator<TModel> validator)
         {
             ValidationResult = validator.Validate(model);

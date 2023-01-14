@@ -2,6 +2,7 @@
 using EngineeringToolbox.Application.Interfaces;
 using EngineeringToolbox.Application.ViewModels;
 using EngineeringToolbox.Domain.Entities;
+using EngineeringToolbox.Domain.Extensions;
 using EngineeringToolbox.Domain.Nofication;
 using EngineeringToolbox.Domain.Repositories;
 using EngineeringToolbox.Domain.Settings;
@@ -19,26 +20,38 @@ namespace EngineeringToolbox.Application.Services
         private readonly IIdentityRepository _identityRepository;
         private readonly IMapper _mapper;
         private readonly ISettings _settings;
+        private readonly IUser _user;
         private readonly NotificationContext _notification;
 
         public AuthServices(IIdentityRepository identityRepository,
             IMapper mapper,
             ISettings settings,
+            IUser user,
             NotificationContext notification)
         {
             _identityRepository = identityRepository;
             _mapper = mapper;
             _settings = settings;
+            _user = user;
             _notification = notification;
         }
 
         public async Task<TokenModel> UserLogin(UserLoginViewModel model)
         {
             var user = _mapper.Map<User>(model);
-            var isUserValid = await _identityRepository.ValidateUserLogin(user);
+            var result = await _identityRepository.ValidateUserLogin(user);
 
-            if (!isUserValid)
+            if (result.IsLockedOut)
+            {
+                _notification.AddNotification("Too many failed attempts. Your account is temporarily locked");
                 return default;
+            }
+
+            if (!result.Succeeded)
+            {
+                _notification.AddNotification("Invalid username or password");
+                return default;
+            }
 
             return await GetToken(user.Email);
         }
@@ -48,7 +61,7 @@ namespace EngineeringToolbox.Application.Services
             throw new NotImplementedException();
         }
 
-        public async Task<Guid> RegisterUser(UserRegisterViewModel model)
+        public async Task<Guid> RegisterUser(UserViewModel model)
         {
             var user = _mapper.Map<User>(model);
 
@@ -76,7 +89,7 @@ namespace EngineeringToolbox.Application.Services
 
             var sendEmail = await EmailHandler.SendEmail(_settings.EmailAdress, user.Email, "Engineering Toolbox Registration",
                 message, _settings.EmailPassword, "DNSoft");
-           
+
             if (!sendEmail)
             {
                 _notification.AddNotification("Error to send registration email");
@@ -86,6 +99,51 @@ namespace EngineeringToolbox.Application.Services
 
             return Guid.Parse(user.Id);
         }
+
+        public async Task ResetPassword(ResetPasswordViewModel model)
+        {
+            if (model.NewPassword != model.ConfirmPassword)
+            {
+                _notification.AddNotification("Passwords not matches");
+                return;
+            }
+
+            var user = await _identityRepository.GetUserById(_user.GetUserId().ToString());
+            user.ChangePassword(model.OldPassword);
+
+            var result = await _identityRepository.ValidateUserLogin(user, false);
+
+            if (!result.Succeeded)
+            {
+                _notification.AddNotification("Invalid password");
+                return;
+            }
+
+            if(model.NewPassword == model.OldPassword)
+            {
+                _notification.AddNotification("Use another password");
+                return;
+            }
+
+            user.ChangePassword(model.NewPassword);
+
+            var updateResult = await _identityRepository.UpdatePassword(user, model.OldPassword, model.NewPassword);
+
+            if (!updateResult.Succeeded)
+            {
+                _notification.AddNotifications(updateResult.Errors.Select(x => x.Description));
+                return;
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                await _identityRepository.UpdateUser(user);
+            }
+
+            return;
+        }
+
 
         private async Task<TokenModel> GetToken(string userEmail)
         {
@@ -134,15 +192,19 @@ namespace EngineeringToolbox.Application.Services
         {
             StringBuilder template = new StringBuilder();
 
-            template.AppendLine($"<h4>Hello {user.FirstName},</h4>");
+            template.AppendLine($"<h4>Hello {user.FirstName} {user.LastName},</h4>");
             template.AppendLine($"<p>Welcome to Engineering Toolbox!</p>");
-
             template.AppendLine("<p>We received a registration in this email. To continue, use the password below: </p>");
             template.AppendLine($"<p><strong>{user.Password}</strong></p>");
             template.AppendLine("</br>");
             template.AppendLine("<p>Good Simulations!</p>");
 
             return template.ToString();
+        }
+
+        public Task<UserViewModel> UpdateUser(UserViewModel model)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace EngineeringToolbox.Api.Controllers
         {
             _notificationContext = notificationContext;
         }
-        protected IActionResult CustomResponse(object? result)
+        protected IActionResult CustomResponse(object? result = null)
         {
             if (_notificationContext.HasNotifications)
             {

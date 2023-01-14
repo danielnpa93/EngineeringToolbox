@@ -1,6 +1,6 @@
 ﻿namespace EngineeringToolbox.Application.ViewModels
 {
-    public class UserRegisterViewModel
+    public class UserViewModel
     {
         public string Email { get; set; }
 

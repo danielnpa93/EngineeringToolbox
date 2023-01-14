@@ -25,6 +25,11 @@ namespace EngineeringToolbox.Infrastructure.Repositories
             _mapper = mapper;
         }
 
+        public async Task<User> GetUserById(string id)
+        {
+            return await _userManager.FindByIdAsync(id);
+        }
+
         public async Task<User> GetUserByEmail(string email)
         {
             return await _userManager.FindByEmailAsync(email);
@@ -38,6 +43,17 @@ namespace EngineeringToolbox.Infrastructure.Repositories
         public async Task<IEnumerable<string>> GetUserRoles(User user)
         {
             return await _userManager.GetRolesAsync(user);
+        }
+
+        public async Task<IdentityResult> UpdateUser(User user)
+        {
+            return await _userManager.UpdateAsync(user);
+        }
+
+
+        public async Task<IdentityResult> UpdatePassword(User user, string oldPassword, string newPassword)
+        {
+            return await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
         }
 
 
@@ -54,23 +70,12 @@ namespace EngineeringToolbox.Infrastructure.Repositories
             return true;
         }
 
-        public async Task<bool> ValidateUserLogin(User user)
+        public async Task<SignInResult> ValidateUserLogin(User user, bool lockOnFailure = true)
         {
-            var result = await _signInManager.PasswordSignInAsync(user.Email, user.Password, false, true);
+            return await _signInManager.PasswordSignInAsync(user.Email, user.Password, false, lockOnFailure);
 
-            if (result.IsLockedOut)
-            {
-                _notificationContext.AddNotification("Too many failed attempts. Your account is temporarily locked");
-                return false;
-            }
-
-            if (!result.Succeeded)
-            {
-                _notificationContext.AddNotification("Invalid username or password");
-                return false;
-            }
-
-            return true;
         }
+
+
     }
 }

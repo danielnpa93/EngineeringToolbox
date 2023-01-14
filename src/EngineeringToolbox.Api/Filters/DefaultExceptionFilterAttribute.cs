@@ -10,12 +10,12 @@ namespace EngineeringToolbox.Api.Filters
     {
         public override void OnException(ExceptionContext context)
         {
-            Log.Error($"[{context.HttpContext.Request.Path}] {context.Exception.InnerException?.Message ?? context.Exception.Message}");
+            Log.Error($"[{context.HttpContext.Request.Path}] Error 500: {context.Exception.InnerException?.Message ?? context.Exception.Message}");
             context.Result =
             new ObjectResult(new ResultModel
             {
                 DisplayMessage = "Unknow Error Occurred",
-                Errors = new string[] { context.Exception.InnerException?.Message ?? context.Exception.Message }
+                Errors = new string[] {"Unknow error occurred" }
             })
             {
                 StatusCode = (int)HttpStatusCode.InternalServerError

@@ -1,5 +1,6 @@
 ﻿using EngineeringToolbox.Application.Interfaces;
 using EngineeringToolbox.Application.Services;
+using EngineeringToolbox.Domain.Extensions;
 using EngineeringToolbox.Domain.Nofication;
 using EngineeringToolbox.Domain.Repositories;
 using EngineeringToolbox.Infrastructure.Repositories;
@@ -29,6 +30,9 @@ namespace EngineeringToolbox.Api.Config
         {
             services.AddScoped<NotificationContext>();
             services.AddAutoMapper(GetAssemblies());
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddScoped<IUser, AppUser>();
         }
 
         private static Assembly[] GetAssemblies()
