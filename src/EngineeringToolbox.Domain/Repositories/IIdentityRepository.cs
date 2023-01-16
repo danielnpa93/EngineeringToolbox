@@ -14,5 +14,7 @@ namespace EngineeringToolbox.Domain.Repositories
         Task<User> GetUserById(string id);
         Task<IdentityResult> UpdateUser(User user);
         Task<IdentityResult> UpdatePassword(User user, string oldPassword, string newPassword);
+        Task<IdentityResult> ResetPassword(User user, string token, string newPassword);
+        Task<string> GetResetPasswordToken(User user);
     }
 }

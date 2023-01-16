@@ -5,8 +5,6 @@ using EngineeringToolbox.Application.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EngineeringToolbox.Shared.Token;
-using Microsoft.AspNetCore.JsonPatch;
-using EngineeringToolbox.Domain.Entities;
 
 namespace EngineeringToolbox.Api.Controllers
 {
@@ -16,7 +14,7 @@ namespace EngineeringToolbox.Api.Controllers
     {
         private readonly IAuthServices _authServices;
 
-        public AuthController(IAuthServices authServices, 
+        public AuthController(IAuthServices authServices,
                               NotificationContext notificationContext) : base(notificationContext)
 
         {
@@ -34,15 +32,6 @@ namespace EngineeringToolbox.Api.Controllers
             return CustomResponse(result);
         }
 
-        //[HttpPost("update")]
-        //[ProducesResponseType(typeof(ResultModel<Guid>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
-        //public async Task<IActionResult> Register(UserRegisterViewModel userRegister)
-        //{
-        //    var result = await _authServices.RegisterUser(userRegister);
-
-        //    return CustomResponse(result);
-        //}
 
         [AllowAnonymous]
         [HttpPost("login")]
@@ -55,10 +44,34 @@ namespace EngineeringToolbox.Api.Controllers
             return CustomResponse(result);
         }
 
-        [HttpPost("reset_password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+        [HttpPost("change_password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
         {
-            await _authServices.ResetPassword(model);
+            await _authServices.ChangePassword(model);
+
+            return CustomResponse();
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResetPassword([FromQuery] string token,
+                                                        [FromQuery] string userId,
+                                                       ResetPasswordViewModel model)
+        {
+            await _authServices.ResetPassword(model,token,userId);
+
+            return CustomResponse();
+        }
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromQuery] string email)
+        {
+            await _authServices.ForgotPassword(email);
 
             return CustomResponse();
         }

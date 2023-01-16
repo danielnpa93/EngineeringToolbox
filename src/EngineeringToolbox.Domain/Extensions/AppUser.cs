@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 
@@ -11,6 +12,8 @@ namespace EngineeringToolbox.Domain.Extensions
         Guid GetUserId();
 
         string GetUserEmail();
+
+        string GetToken();
 
         bool IsAuthenticated();
 
@@ -60,6 +63,11 @@ namespace EngineeringToolbox.Domain.Extensions
         {
             return _accessor.HttpContext.User.IsInRole(role);
         }
+
+        public string GetToken()
+        {
+            return _accessor.HttpContext.Request.Headers[HeaderNames.Authorization].ToString().Replace("Bearer ", "");
+        }
     }
 
     public static class ClaimPrincipalExtensions
@@ -90,6 +98,7 @@ namespace EngineeringToolbox.Domain.Extensions
             {
                 throw new ArgumentNullException(nameof(principal));
             }
+
 
             return principal.FindFirst("JWT")?.Value;
         }

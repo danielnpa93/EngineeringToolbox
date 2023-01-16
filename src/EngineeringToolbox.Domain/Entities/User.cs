@@ -47,12 +47,13 @@ namespace EngineeringToolbox.Domain.Entities
         public void ChangePassword(string password)
         {
             Password = password;
+            PasswordExpiresIn = DateTime.UtcNow.AddYears(1);
             Validate(this, new UserValidator());
         }
 
         public void ChangeName(string firstName, string lastName)
         {
-            FirstName = firstName?? FirstName;
+            FirstName = firstName ?? FirstName;
             LastName = lastName ?? LastName;
             Validate(this, new UserValidator());
         }

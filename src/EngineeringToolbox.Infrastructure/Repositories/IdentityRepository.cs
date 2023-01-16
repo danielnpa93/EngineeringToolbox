@@ -56,6 +56,10 @@ namespace EngineeringToolbox.Infrastructure.Repositories
             return await _userManager.ChangePasswordAsync(user, oldPassword, newPassword);
         }
 
+        public async Task<IdentityResult> ResetPassword(User user, string token, string newPassword)
+        {
+            return await _userManager.ResetPasswordAsync(user, token, newPassword);
+        }
 
         public async Task<bool> RegisterUser(User user)
         {
@@ -76,6 +80,9 @@ namespace EngineeringToolbox.Infrastructure.Repositories
 
         }
 
-
+        public async Task<string> GetResetPasswordToken(User user)
+        {
+            return await _userManager.GeneratePasswordResetTokenAsync(user);
+        }
     }
 }
