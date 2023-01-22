@@ -1,9 +1,13 @@
 ﻿using AutoMapper;
 using EngineeringToolbox.Domain.Entities;
+using EngineeringToolbox.Domain.Extensions;
 using EngineeringToolbox.Domain.Nofication;
 using EngineeringToolbox.Domain.Repositories;
+using EngineeringToolbox.Infrastructure.Context;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using System.Transactions;
 
 namespace EngineeringToolbox.Infrastructure.Repositories
 {
@@ -11,16 +15,19 @@ namespace EngineeringToolbox.Infrastructure.Repositories
     {
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
+        private readonly ApplicationDbContext _context;
         private readonly NotificationContext _notificationContext;
         private readonly IMapper _mapper;
 
         public IdentityRepository(SignInManager<User> signInManager,
             UserManager<User> userManager,
+            ApplicationDbContext context,
             NotificationContext notificationContext,
             IMapper mapper)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _context = context;
             _notificationContext = notificationContext;
             _mapper = mapper;
         }
@@ -61,17 +68,9 @@ namespace EngineeringToolbox.Infrastructure.Repositories
             return await _userManager.ResetPasswordAsync(user, token, newPassword);
         }
 
-        public async Task<bool> RegisterUser(User user)
+        public async Task<IdentityResult> RegisterUser(User user)
         {
-            var result = await _userManager.CreateAsync(user, user.Password);
-
-            if (!result.Succeeded)
-            {
-                _notificationContext.AddNotifications(result.Errors.Select(e => e.Description));
-                return false;
-            }
-
-            return true;
+            return await _userManager.CreateAsync(user, user.Password);
         }
 
         public async Task<SignInResult> ValidateUserLogin(User user, bool lockOnFailure = true)
@@ -83,6 +82,36 @@ namespace EngineeringToolbox.Infrastructure.Repositories
         public async Task<string> GetResetPasswordToken(User user)
         {
             return await _userManager.GeneratePasswordResetTokenAsync(user);
+        }
+
+        public async Task<string> GetChangeEmailToken(User user, string newEmail)
+        {
+            return await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+        }
+
+        public async Task<bool> ChangeEmail(User user, string token, string email)
+        {
+            using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            {
+                try
+                {
+                    var changeEmail = await _userManager.ChangeEmailAsync(user, email,token);
+                    var changeUserName = await _userManager.SetUserNameAsync(user, email);
+
+                    if (!changeUserName.Succeeded || !changeEmail.Succeeded)
+                    {
+                        throw new Exception();
+                    }
+
+                    scope.Complete();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    scope.Dispose();
+                    return false;
+                }
+            }
         }
     }
 }

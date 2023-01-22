@@ -55,25 +55,53 @@ namespace EngineeringToolbox.Api.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("reset-password")]
+        [HttpPost("reset_password")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ResetPassword([FromQuery] string token,
                                                         [FromQuery] string userId,
                                                        ResetPasswordViewModel model)
         {
-            await _authServices.ResetPassword(model,token,userId);
+            await _authServices.ResetPassword(model, token, userId);
 
             return CustomResponse();
         }
 
         [AllowAnonymous]
-        [HttpPost("forgot-password")]
+        [HttpPost("forgot_password")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ResultModel), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ForgotPassword([FromQuery] string email)
         {
             await _authServices.ForgotPassword(email);
 
             return CustomResponse();
+        }
+
+        [HttpPost("change_email_request")]
+        public async Task<IActionResult> ChangeEmailRequest(string newEmail)
+        {
+            await _authServices.ChangeEmailRequest(newEmail);
+
+            return CustomResponse();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("change_email")]
+        public async Task<ContentResult> ChangeEmail([FromQuery] string token,
+                                              [FromQuery] string email,
+                                              [FromQuery] string userId)
+        {
+             var result = await _authServices.ChangeEmail(token, email, userId);
+
+            var message = result ? $"Your email/username has been changed to {email}" :
+                $"Error to change your email";
+
+            return new ContentResult
+            {
+                ContentType = "text/html",
+                Content = $"<div style='text-align: center;padding-top:50px'>{message}</div>"
+            };
         }
 
         //[HttpPatch]

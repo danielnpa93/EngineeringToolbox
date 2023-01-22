@@ -8,8 +8,7 @@ using EngineeringToolbox.Domain.Repositories;
 using EngineeringToolbox.Domain.Settings;
 using EngineeringToolbox.Shared.Token;
 using EngineeringToolbox.Shared.Utils;
-using FluentEmail.Core;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -81,11 +80,13 @@ namespace EngineeringToolbox.Application.Services
                 return default;
             }
 
-            var success = await _identityRepository.RegisterUser(user);
+            var result = await _identityRepository.RegisterUser(user);
 
-            if (!success)
+            if (!result.Succeeded)
+            {
+                _notification.AddNotifications(result.Errors.Select(e => e.Description));
                 return default;
-
+            }
 
             var message = GenerateRegistrationEmail(user);
 
@@ -106,22 +107,14 @@ namespace EngineeringToolbox.Application.Services
                 return;
             }
 
+            user.EmailConfirmed = true;
             var result = await _identityRepository.UpdatePassword(user, model.OldPassword, model.NewPassword);
 
-            if (result != null && !result.Succeeded)
+            if (!result.Succeeded)
             {
                 _notification.AddNotifications(result.Errors.Select(x => x.Description));
                 return;
             }
-
-            if (result != null && result.Succeeded && !user.EmailConfirmed)
-            {
-                user.EmailConfirmed = true;
-                await _identityRepository.UpdateUser(user);
-            }
-
-            await _identityRepository.UpdateUser(user); // Change password expiration
-
         }
 
         public async Task ResetPassword(ResetPasswordViewModel model, string token, string userId)
@@ -135,21 +128,14 @@ namespace EngineeringToolbox.Application.Services
                 return;
             }
 
+            user.EmailConfirmed = true;
             var result = await _identityRepository.ResetPassword(user, token, model.NewPassword);
 
-            if (result != null && !result.Succeeded)
+            if (!result.Succeeded)
             {
                 _notification.AddNotifications(result.Errors.Select(x => x.Description));
                 return;
             }
-
-            if (result != null && result.Succeeded && !user.EmailConfirmed)
-            {
-                user.EmailConfirmed = true;
-                await _identityRepository.UpdateUser(user);
-            }
-
-            await _identityRepository.UpdateUser(user); // Change password expiration
         }
 
         private async Task<TokenModel> GetToken(string userEmail)
@@ -170,7 +156,6 @@ namespace EngineeringToolbox.Application.Services
 
         private string EcondedToken(ClaimsIdentity identityClaims)
         {
-
             var tokenHandler = new JwtSecurityTokenHandler();
 
             var key = Encoding.ASCII.GetBytes(_settings.IdentitySecret);
@@ -211,8 +196,6 @@ namespace EngineeringToolbox.Application.Services
         private static long ToUnixEpochDate(DateTime date)
            => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
 
-
-
         private string GenerateRegistrationEmail(User user)
         {
             StringBuilder template = new StringBuilder();
@@ -233,7 +216,7 @@ namespace EngineeringToolbox.Application.Services
 
             template.AppendLine($"<h4>Password reset</h4>");
             template.AppendLine("<p>Click on link bellow to reset your password:</p>");
-            template.AppendLine($"<p><strong>{link}</strong></p>");
+            template.AppendLine($"<p><strong>{link}</strong></p>"); //TODO LINK to spa form
 
             return template.ToString();
         }
@@ -246,7 +229,12 @@ namespace EngineeringToolbox.Application.Services
         public async Task ForgotPassword(string email)
         {
             var user = await _identityRepository.GetUserByEmail(email);
-            var token = await _identityRepository.GetResetPasswordToken(user);
+
+            if (user == null)
+            {
+                return; //do not send message if user exists
+            }
+            var token = await _identityRepository.GetResetPasswordToken(user); //TODO encode token
 
             var message = GenerateForgotPasswordEmail($"https://localhost?token={token}&id={user.Id}");
 
@@ -255,6 +243,62 @@ namespace EngineeringToolbox.Application.Services
 
             return;
 
+        }
+
+        public async Task ChangeEmailRequest(string newEmail)
+        {
+            var user = await _identityRepository.GetUserById(_user.GetUserId().ToString());
+            var oldEmail = user.Email;
+
+            user.ChangeEmail(newEmail);
+
+            if (!user.Valid)
+            {
+                _notification.AddNotifications(user.ValidationResult);
+                return;
+            }
+
+            var alreadyHasUser = await _identityRepository.GetUserByEmail(newEmail);
+
+            if (alreadyHasUser != null)
+            {
+                _notification.AddNotification("Email already in use");
+                return;
+            }
+
+            var token = await _identityRepository.GetChangeEmailToken(user, newEmail);
+
+            var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            //TODO get spa link on app settings
+            string link = $"https://localhost:7128/api/v1/identity/change_email?token={code}&email={newEmail}&userId={user.Id}";
+
+            var message = GenerateChangeEmailConfirmation(link, oldEmail, newEmail);
+
+            EmailHandler.SendEmail(_settings.EmailAdress, oldEmail, "Engineering Toolbox Email Change",
+                message, _settings.EmailPassword, "DNSoft");
+
+        }
+
+        private string GenerateChangeEmailConfirmation(string link, string oldEmail, string newEmail)
+        {
+            StringBuilder template = new StringBuilder();
+
+            template.AppendLine($"<h4>Change email confirmation</h4>");
+            template.AppendLine($"<p>We receive a change email request from <b>{oldEmail}</b> to <b>{newEmail}</b></p>");
+            template.AppendLine("<p>Click on link bellow to confirm the change, if was not you ignore this email.</p>");
+            template.AppendLine($"<a href={link}>Click here</a>");
+
+            return template.ToString();
+        }
+
+        public async Task<bool> ChangeEmail(string token, string email, string userId)
+        {
+            var user = await _identityRepository.GetUserById(userId);
+
+            var code = Encoding.ASCII.GetString(WebEncoders.Base64UrlDecode(token));
+
+            return await _identityRepository.ChangeEmail(user, code, email);
         }
     }
 }

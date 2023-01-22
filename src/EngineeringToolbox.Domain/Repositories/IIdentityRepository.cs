@@ -7,7 +7,7 @@ namespace EngineeringToolbox.Domain.Repositories
     public interface IIdentityRepository
     {
         Task<SignInResult> ValidateUserLogin(User user, bool lockOnFailure = true);
-        Task<bool> RegisterUser(User user);
+        Task<IdentityResult> RegisterUser(User user);
         Task<User> GetUserByEmail(string email);
         Task<IList<Claim>> GetUserClaims(User user);
         Task<IEnumerable<string>> GetUserRoles(User user);
@@ -16,5 +16,7 @@ namespace EngineeringToolbox.Domain.Repositories
         Task<IdentityResult> UpdatePassword(User user, string oldPassword, string newPassword);
         Task<IdentityResult> ResetPassword(User user, string token, string newPassword);
         Task<string> GetResetPasswordToken(User user);
+        Task<string> GetChangeEmailToken(User user, string newEmail);
+        Task<bool> ChangeEmail(User user, string token, string email);
     }
 }

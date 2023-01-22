@@ -12,5 +12,7 @@ namespace EngineeringToolbox.Application.Interfaces
         Task ResetPassword(ResetPasswordViewModel model, string token, string userId);
         Task<UserViewModel> UpdateUser(UserViewModel model);
         Task ForgotPassword(string email);
+        Task ChangeEmailRequest(string newEmail);
+        Task<bool> ChangeEmail(string token, string email, string userId);
     }
 }
